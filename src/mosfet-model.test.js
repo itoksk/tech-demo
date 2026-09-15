@@ -1,0 +1,5 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {mosfetState} from './mosfet-model.js';
+test('NMOS is off at/below threshold and carries no drain current at zero VDS',()=>{for(const g of [0,1,1.5])assert.equal(mosfetState(g,5).id,0);assert.equal(mosfetState(4,0).id,0);assert.equal(mosfetState(4,0).channel,true);});
+test('linear and saturation regions match the long-channel equations',()=>{const a=mosfetState(3.5,.5),b=mosfetState(3.5,3);assert.equal(a.region,'線形');assert.ok(Math.abs(a.id-.00175)<1e-12);assert.equal(b.region,'飽和');assert.ok(Math.abs(b.id-.004)<1e-12);});
+test('current is continuous at pinch-off and constant beyond it',()=>{for(const vth of [.5,1.5,2.5])for(const g of [3,4,5]){const b=g-vth;assert.ok(Math.abs(mosfetState(g,b-1e-6,vth).id-mosfetState(g,b,vth).id)<1e-10);assert.equal(mosfetState(g,b,vth).id,mosfetState(g,5,vth).id);}});
+test('current is nonnegative, monotonic with gate voltage, and ideal DC gate current is zero',()=>{for(let d=0;d<=5;d+=.25){let last=0;for(let g=0;g<=5;g+=.1){const s=mosfetState(g,d);assert.ok(s.id>=last-1e-12);assert.equal(s.ig,0);assert.equal(s.power,s.id*d);last=s.id;}}});
