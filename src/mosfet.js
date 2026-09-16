@@ -17,7 +17,6 @@ const gate=boxes(2.75,.25,2.7,gateMat,gateStack,[0,1.065,0]);
 const sourceContact=boxes(.82,.12,1.2,metal,chip,[-2.175,.81,0]),drainContact=boxes(.82,.12,1.2,metal,chip,[2.175,.81,0]);
 for(const x of [-2.175,2.175])tube([[x,.87,0],[x,1.65,0],[x*1.3,2.0,0]],.055,metal,chip);
 tube([[0,1.2,0],[0,2.0,0],[0,2.35,0]],.055,metal,gateStack);
-const bodyWire=tube([[0,-.75,0],[0,-1.05,0],[-3.4,-1.05,0],[-3.4,.9,0],[-2.175,.9,0]],.035,metal,chip);
 const chargeMaterial=new T.MeshBasicMaterial({color:0xeed6b8});
 for(let x=-2.7;x<=2.7;x+=.6)for(const z of [-.95,0,.95])add(new T.SphereGeometry(.028,8,6),chargeMaterial,chip,[x,-.35,z]);
 const slices=[];const channelMat=new T.MeshBasicMaterial({color:0xbddd86,transparent:true,opacity:.75});
@@ -52,10 +51,10 @@ function update(){
  document.querySelectorAll('[data-preset]').forEach(b=>b.setAttribute('aria-pressed',String({off:'遮断',linear:'線形',saturation:'飽和'}[b.dataset.preset]===state.region)));
  slices.forEach((m,i)=>{m.visible=state.channel;const f=(i+.5)/slices.length;const endCharge=Math.max(0,state.overdrive-Math.min(state.vds,state.overdrive)*f);m.scale.y=Math.max(.025,endCharge/4.5*2.1);m.position.y=.748-.05*m.scale.y;});
  channelPick.visible=state.channel;electric.visible=$('field').checked&&state.vgs>0;fieldCaption.visible=electric.visible;electric.children.forEach(a=>{a.position.y=1.01+(exploded?1.1:0);a.setLength(.3+state.vgs*.045+(exploded?1.1:0),.09,.045);});
- flow.element.textContent=state.id===0?(state.channel?'チャネルあり / 電流 0':'チャネルなし / 電流 0'):$('electrons').checked?'電子：S → D':'慣用電流：D → S';
+ flow.element.textContent=state.id===0?(state.channel?'チャネルあり / 電流 0':'チャネルなし / 電流 0'):($('flow-direction').value==='electrons')?'電子：S → D':'慣用電流：D → S';
  plot();drawParticles();
 }
-function drawParticles(){const count=state.id>0?Math.max(5,Math.round(state.id/.020*60)):0;dots.forEach((p,i)=>{p.visible=i<count;if(!p.visible)return;const f=(time*.35+i/Math.max(1,count))%1;p.position.set(-2.85+5.7*($('electrons').checked?f:1-f),.755,((i%6)-2.5)*.35);});}
-for(const id of ['gate-voltage','drain-voltage','threshold','field','electrons'])$(id).addEventListener('input',update);
+function drawParticles(){const count=state.id>0?Math.max(5,Math.round(state.id/.020*60)):0;dots.forEach((p,i)=>{p.visible=i<count;if(!p.visible)return;const f=(time*.35+i/Math.max(1,count))%1;p.position.set(-2.85+5.7*(($('flow-direction').value==='electrons')?f:1-f),.755,((i%6)-2.5)*.35);});}
+for(const id of ['gate-voltage','drain-voltage','threshold','field','flow-direction'])$(id).addEventListener('input',update);
 document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>{$('gate-voltage').value=b.dataset.preset==='off'?0:Number($('threshold').value)+2;$('drain-voltage').value=b.dataset.preset==='linear'?.5:3;update();});
 select('gate');setRunning(running);update();stage.animate(dt=>{if(running)time+=dt;drawParticles();});

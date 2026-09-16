@@ -53,6 +53,12 @@ for(let i=0;i<6;i++){
  const spark=cyl(.075,.38,rodMat,head);spark.position.y=.2;
  const gasMat=new THREE.MeshBasicMaterial({color:phases[0].color,transparent:true,opacity:.32,depthWrite:false});
  const gas=cyl(.53,1,gasMat,group);
+ const ignition=new THREE.Group();group.add(ignition);ignition.position.y=3.07;
+ const sparkMat=new THREE.MeshBasicMaterial({color:0xcceeff,transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending});
+ const sparkCore=mesh(new THREE.SphereGeometry(.10,12,8),sparkMat,ignition);
+ for(let j=0;j<7;j++){const a=j*Math.PI*2/7;const points=[new THREE.Vector3(0,.04,0),new THREE.Vector3(Math.cos(a)*.045,-.02,Math.sin(a)*.045),new THREE.Vector3(Math.cos(a)*.10,-.045,Math.sin(a)*.10),new THREE.Vector3(Math.cos(a)*.14,-.11,Math.sin(a)*.14)];ignition.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:0xc8e8ff,transparent:true,depthTest:false,depthWrite:false})));}
+ const flameMat=new THREE.MeshBasicMaterial({color:0xffae38,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
+ const flame=mesh(new THREE.SphereGeometry(1,24,16),flameMat,group);
  const button=document.createElement('button');button.className='number-label';button.textContent=String(i+1).padStart(2,'0');button.setAttribute('aria-label',`シリンダー${i+1}を選択`);button.onclick=()=>select(i);
  const label=new CSS2DObject(button);label.position.set(0,4,0);group.add(label);
  piston.traverse(o=>{if(o.isMesh)o.userData.cylinder=i});sleeve.userData.cylinder=i;cap.userData.cylinder=i;
@@ -63,7 +69,7 @@ for(let i=0;i<6;i++){
   const weight=cyl(.38,.18,dark,crank);weight.rotation.x=Math.PI/2;weight.position.set(-x*.5,-y*.5,z+dz);
  }
  const pin=cyl(.16,.62,metal,crank);pin.rotation.x=Math.PI/2;pin.position.set(x,y,z);
- units.push({group,sleeve,piston,rod,big,head,valves,gas,label,button});
+ units.push({group,sleeve,piston,rod,big,head,valves,gas,label,button,ignition,flame});
 }
 const wheel=cyl(1.1,.22,dark,crank);wheel.rotation.x=Math.PI/2;wheel.position.z=5.05;
 const wheelRing=mesh(new THREE.TorusGeometry(.94,.06,12,64),metal,crank);wheelRing.position.z=5.18;
@@ -108,6 +114,13 @@ function update(){
   u.valves[0].position.y=s.intake?-.16*Math.sin((s.local-360)/180*Math.PI):0;
   u.valves[1].position.y=u.valves[0].position.y;
   u.valves[2].position.y=u.valves[3].position.y=s.exhaust?-.16*Math.sin((s.local-180)/180*Math.PI):0;
+  // Illustrative ignition at combustion TDC, followed by flame propagation.
+  u.ignition.visible=s.local<14&&!modeRow.querySelector('[data-engine-mode="exterior"][aria-pressed="true"]');u.ignition.position.y=3.07+explode*1.9;
+  u.ignition.scale.setScalar(1+.18*Math.sin(s.local*2));
+  const burn=s.local/95;u.flame.visible=s.local<95&&explode<.05;
+  u.flame.material.opacity=.65*Math.sin(Math.PI*Math.min(1,burn));
+  u.flame.material.color.setHSL(.13-.09*Math.min(1,burn),1,.58);
+  const flameHeight=Math.max(.04,3.1-(s.y+.24));u.flame.scale.set(.12+.4*Math.min(1,burn*3),flameHeight*.44,.12+.4*Math.min(1,burn*3));u.flame.position.y=s.y+.24+flameHeight*.5;
   const height=Math.max(.03,3.15-(s.y+.22));u.gas.scale.y=height;u.gas.position.y=s.y+.22+height/2;u.gas.material.color.setHex(phases[s.phase].color);u.gas.visible=$('colors').checked;u.label.position.y=4.65+explode*2.7;
  }
  const s=cylinderState(angle,selected),phase=phases[s.phase];$('phase-badge').textContent=phase.name;$('phase-badge').style.background='#'+phase.color.toString(16);$('phase-description').textContent=phase.description;$('displacement').textContent=s.displacement.toFixed(1)+' mm';$('valves').textContent=(s.intake?'開':'閉')+' / '+(s.exhaust?'開':'閉');$('angle-value').textContent=Math.round(angle);$('angle').value=angle;
