@@ -2,6 +2,8 @@ import * as THREE from 'three';
 // A stylized flame front, confined to the combustion chamber (not an exhaust flame).
 export function createCombustion(parent) {
   const group = new THREE.Group(); parent.add(group);
+  // Local +Y points down from the fixed spark-plug tip into the chamber.
+  group.position.y=3.07;group.rotation.x=Math.PI;
   const material = new THREE.ShaderMaterial({
     transparent:true,depthWrite:false,side:THREE.DoubleSide,
     uniforms:{phase:{value:0},strength:{value:0}},
@@ -28,27 +30,27 @@ export function createCombustion(parent) {
     const m=new THREE.Mesh(geometry,material);group.add(m);
     const a=j*2.39996,r=j===0?0:.12+.24*Math.sqrt(j/12);
     m.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
-    m.rotation.z=Math.cos(a)*.18;m.rotation.x=Math.sin(a)*.18;
+    m.userData.radial=[Math.cos(a)*r,Math.sin(a)*r];
     tongues.push(m);
   }
   const glowMat=new THREE.MeshBasicMaterial({color:0xff8b12,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending});
   const glow=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),glowMat);group.add(glow);
   const light=new THREE.PointLight(0xff9b37,0,2.3,2);group.add(light);
   return {update(local,pistonTop,visible){
-    const t=local/120,progress=Math.min(1,t*3.5),height=Math.max(.05,3.12-pistonTop);
+    const t=local/120,progress=Math.min(1,t*3.5),height=Math.max(.01,3.07-pistonTop);
     group.visible=visible&&local<120;
     if(!group.visible)return;
-    group.position.y=pistonTop;
+    const reach=height*progress;
     const strength=Math.pow(Math.sin(Math.PI*Math.min(1,t)),.65);
     material.uniforms.phase.value=local*.13;
     material.uniforms.strength.value=strength;
     tongues.forEach((m,j)=>{
       const flicker=.8+.2*Math.sin(local*.43+j*1.7);
-      m.scale.set((j===0?.23:.13)*progress,height*(.55+.4*flicker), (j===0?.23:.13)*progress);
-      // The flame initially spreads from the spark plug, then fills the chamber.
-      m.position.y=(1-progress)*height*.8;
+      m.scale.set((j===0?.23:.13)*progress,reach*(.55+.4*flicker), (j===0?.23:.13)*progress);
+      // Start at the plug, spread radially, and propagate down toward the piston.
+      m.position.set(m.userData.radial[0]*progress,0,m.userData.radial[1]*progress);
     });
-    glow.position.y=height*.5;glow.scale.set(.49*progress,height*.46,.49*progress);
-    glowMat.opacity=strength*.18;light.position.y=height*.55;light.intensity=strength*2.5;
+    glow.position.y=reach*.5;glow.scale.set(.49*progress,reach*.46,.49*progress);
+    glowMat.opacity=strength*.18;light.position.y=reach*.35;light.intensity=strength*2.5;
   }};
 }
